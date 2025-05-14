@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>💸 Money Simulator Access</title>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-app-compat.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/9.6.1/firebase-auth-compat.js"></script>
+  <style>
+    body {
+      background: #111;
+      color: #fff;
+      font-family: sans-serif;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      height: 100vh;
+      margin: 0;
+      text-align: center;
+    }
+    .hidden { display: none; }
+    button {
+      background: #00ffcc;
+      color: #000;
+      padding: 10px 20px;
+      border: none;
+      margin: 10px;
+      cursor: pointer;
+      font-weight: bold;
+      border-radius: 8px;
+    }
+    .money {
+      font-size: 3rem;
+      margin-top: 2rem;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>💸 Welcome to the Money Simulator</h1>
+  <p id="status">Please sign in to continue</p>
+
+  <div id="auth-buttons">
+    <button onclick="signInWithGoogle()">Sign In with Google</button>
+    <button onclick="signInAnonymously()">Other Sign-In</button>
+  </div>
+
+  <div id="moneyApp" class="hidden">
+    <h2>Hello, <span id="username"></span>!</h2>
+    <div class="money" id="moneyDisplay">$0.00</div>
+    <p>You earn $25 every 5 minutes!</p>
+  </div>
+
+  <script>
+    // 🔧 Replace with your own Firebase config
+    const firebaseConfig = {
+      apiKey: "YOUR_API_KEY",
+      authDomain: "YOUR_AUTH_DOMAIN",
+      projectId: "YOUR_PROJECT_ID",
+      appId: "YOUR_APP_ID"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const auth = firebase.auth();
+
+    // 👑 Free access for owner
+    const OWNER_EMAIL = "youremail@example.com";
+
+    function signInWithGoogle() {
+      const provider = new firebase.auth.GoogleAuthProvider();
+      auth.signInWithPopup(provider).catch(console.error);
+    }
+
+    function signInAnonymously() {
+      auth.signInAnonymously().catch(console.error);
+    }
+
+    auth.onAuthStateChanged(user => {
+      if (!user) return;
+
+      document.getElementById("status").textContent = "Signed in!";
+      document.getElementById("auth-buttons").classList.add("hidden");
+
+      const email = user.email || "Anonymous";
+
+      // Check payment or owner
+      const isOwner = email === OWNER_EMAIL;
+      const hasPaid = isOwner || localStorage.getItem("paidAccess") === "yes";
+
+      if (hasPaid) {
+        launchSimulator(email);
+      } else {
+        const confirmPayment = confirm("Access costs $10. Continue to pay?");
+        if (confirmPayment) {
+          // Simulated payment
+          localStorage.setItem("paidAccess", "yes");
+          launchSimulator(email);
+        } else {
+          alert("Access denied. Payment required.");
+          auth.signOut();
+        }
+      }
+    });
+
+    function launchSimulator(name) {
+      document.getElementById("moneyApp").classList.remove("hidden");
+      document.getElementById("username").textContent = name;
+
+      let money = 0;
+      const display = document.getElementById("moneyDisplay");
+
+      setInterval(() => {
+        money += 25;
+        display.textContent = `$${money.toFixed(2)}`;
+      }, 300000); // 5 minutes
+    }
+  </script>
+</body>
+</html>
